@@ -11,5 +11,3 @@ Steps to install:
 7. Uncheck testmodule
 
 You are now set!
-
-License: 
