@@ -2,6 +2,7 @@
 
 local whisperVolume = 0.80
 tableWhispers = {}
+tableWhispersProxy = {}
 
 -- volume boost is -50 to +20 dB (not linear since we are dealing with dB's)
 local whisperLevel = 0 - 50 * (1 - whisperVolume)
@@ -31,19 +32,31 @@ local function onNewChannelEvent(serverConnectionHandlerID, channelID, channelPa
 end
 
 local function onTalkStatusChangeEvent(serverConnectionHandlerID, status, isReceivedWhisper, clientID)
-    print("TestModule: onTalkStatusChangeEvent: " .. serverConnectionHandlerID .. " " .. status .. " " .. isReceivedWhisper .. " " .. clientID)
+    --Debug print("TestModule: onTalkStatusChangeEvent: " .. serverConnectionHandlerID .. " " .. status .. " " .. isReceivedWhisper .. " " .. clientID)
 	local currentChannelID = getCurrentChannel(serverConnectionHandlerID)
 
 	-- Create a table holding all people whispering. 
 	--We will keep channel volume low while length > 0 and set it back once the last whisper is done.    
-	if isReceivedWhisper == 0 and status == 1 then
+	if isReceivedWhisper == 1 and status == 1 then
 		-- Add the client to the whisper dictionary
-		tableWhispers[clientID] = 1
-		print("Current talkers: " .. #tableWhispers)
-	elseif isReceivedWhisper == 0 and status == 0 then
-		-- Remove the client from the whisper dictionary
-		tableWhispers[clientID] = nil
-		print("Current talkers: " .. #tableWhispers)
+		table.insert(tableWhispers, clientID)
+		tableWhispersProxy[clientID] = 1
+		--Debug print(#tableWhispers)
+		-- Add a reference to the clientID to the array, want to do a map but I can't no way to determine size of a dictionary :/
+	elseif isReceivedWhisper == 1 and status == 0 then
+		for i=1, #tableWhispers do
+			local removedClient = false
+			if tableWhispers[i] == clientID then
+				table.remove(tableWhispers, i)
+			    -- Remove the client from the whisper map
+				removedClient = true
+			end
+		end
+		tableWhispersProxy[clientID] = nil
+		if removedClient == false then
+			print("ERROR: client was not found in the array of whisperers... something went wrong")
+		end
+		--Debug print(#tableWhispers)
 	end
 
 	if isReceivedWhisper == 1 then
@@ -58,10 +71,12 @@ local function onTalkStatusChangeEvent(serverConnectionHandlerID, status, isRece
 			end
 			
 			for i=1, #clientList do
-				local tenpClientId = clientList[i]
+				local tempClientId = clientList[i]
 				
 				-- TODO Do not mute whisperer if they are in this channel
-				local error = ts3.setClientVolumeModifier(serverConnectionHandlerID, tempClientId, whisperLevel)
+				if tableWhispersProxy[tempClientId] = nil then
+					local error = ts3.setClientVolumeModifier(serverConnectionHandlerID, tempClientId, whisperLevel)
+				end
 				
 				if error ~= ts3errors.ERROR_ok then
 					print("Error setting client volume modifier: " .. error)
