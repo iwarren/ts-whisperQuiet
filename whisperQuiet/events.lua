@@ -74,7 +74,7 @@ local function onTalkStatusChangeEvent(serverConnectionHandlerID, status, isRece
 				local tempClientId = clientList[i]
 				
 				-- TODO Do not mute whisperer if they are in this channel
-				if tableWhispersProxy[tempClientId] = nil then
+				if tableWhispersProxy[tempClientId] == nil then
 					local error = ts3.setClientVolumeModifier(serverConnectionHandlerID, tempClientId, whisperLevel)
 				end
 				
